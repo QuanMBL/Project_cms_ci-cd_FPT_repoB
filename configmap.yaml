@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-config
+  namespace: cms-app
+data:
+  DEBUG: "False"
+  DJANGO_SETTINGS_MODULE: "cms_project.settings"
+  LANGUAGE_CODE: "vi"
+  TIME_ZONE: "Asia/Ho_Chi_Minh"
+  ALLOWED_HOSTS: "*"
+  CORS_ALLOW_ALL_ORIGINS: "True"
+  CORS_ALLOW_CREDENTIALS: "True"

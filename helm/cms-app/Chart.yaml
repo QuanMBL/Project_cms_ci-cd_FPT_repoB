@@ -1,0 +1,17 @@
+apiVersion: v2
+name: cms-app
+description: Django CMS Application Helm Chart
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - django
+  - cms
+  - api
+home: https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoB
+sources:
+  - https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoA
+  - https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoB
+maintainers:
+  - name: QuanMBL
+    email: quan@example.com

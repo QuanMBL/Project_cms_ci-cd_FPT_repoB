@@ -1,0 +1,78 @@
+{{- if .Values.database.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cms-app.fullname" . }}-postgres
+  labels:
+    {{- include "cms-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "cms-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: database
+  template:
+    metadata:
+      labels:
+        {{- include "cms-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.database.image }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.database.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.database.user | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cms-app.fullname" . }}-db-secret
+                  key: password
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: {{ include "cms-app.fullname" . }}-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cms-app.fullname" . }}-postgres
+  labels:
+    {{- include "cms-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    {{- include "cms-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "cms-app.fullname" . }}-postgres-pvc
+  labels:
+    {{- include "cms-app.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.database.persistence.size }}
+{{- end }}

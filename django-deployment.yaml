@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-cms
+  namespace: cms-app
+  labels:
+    app: django-cms
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-cms
+  template:
+    metadata:
+      labels:
+        app: django-cms
+    spec:
+      containers:
+      - name: django-cms
+        image: ghcr.io/quanmbl/project_cms_ci-cd_fpt_repoa:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: django-secret
+              key: SECRET_KEY
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: django-config
+              key: DEBUG
+        - name: DJANGO_SETTINGS_MODULE
+          valueFrom:
+            configMapKeyRef:
+              name: django-config
+              key: DJANGO_SETTINGS_MODULE
+        - name: LANGUAGE_CODE
+          valueFrom:
+            configMapKeyRef:
+              name: django-config
+              key: LANGUAGE_CODE
+        - name: TIME_ZONE
+          valueFrom:
+            configMapKeyRef:
+              name: django-config
+              key: TIME_ZONE
+        - name: ALLOWED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: django-config
+              key: ALLOWED_HOSTS
+        - name: CORS_ALLOW_ALL_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: django-config
+              key: CORS_ALLOW_ALL_ORIGINS
+        - name: CORS_ALLOW_CREDENTIALS
+          valueFrom:
+            configMapKeyRef:
+              name: django-config
+              key: CORS_ALLOW_CREDENTIALS
+        livenessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-cms-service
+  namespace: cms-app
+  labels:
+    app: django-cms
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  selector:
+    app: django-cms
