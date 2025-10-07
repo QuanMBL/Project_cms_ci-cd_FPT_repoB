@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoB.git
+    repoURL: https://github.com/QuanMBL4255142/Project_cms_ci-cd_FPT_repoA.git
     targetRevision: HEAD
     path: helm/cms-app
     helm:

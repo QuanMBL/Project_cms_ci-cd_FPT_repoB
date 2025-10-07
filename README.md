@@ -1,163 +1,148 @@
-# Kubernetes Manifests và Helm Charts
+# Django CMS CI/CD với ArgoCD và Helm
 
-Repository này chứa các manifest Kubernetes và Helm charts để deploy Django CMS API.
+Repository này chứa cấu hình Kubernetes và Helm chart để deploy Django CMS application sử dụng ArgoCD.
 
-## Cấu trúc
+## Cấu trúc Repository
 
 ```
-├── namespace.yaml              # Namespace cho ứng dụng
-├── configmap.yaml             # ConfigMap cho Django settings
-├── secret.yaml                # Secret cho sensitive data
-├── postgres-deployment.yaml    # PostgreSQL deployment
-├── django-deployment.yaml     # Django app deployment
-├── ingress.yaml               # Ingress configuration
-└── helm/
-    └── cms-app/               # Helm chart
-        ├── Chart.yaml         # Chart metadata
-        ├── values.yaml        # Default values
-        └── templates/      # Kubernetes templates
-            ├── deployment.yaml
-            ├── service.yaml
-            ├── ingress.yaml
-            ├── secret.yaml
-            ├── serviceaccount.yaml
-            ├── postgres.yaml
-            └── _helpers.tpl
+├── k8s/                       # Kubernetes manifests
+│   ├── argocd-namespace.yaml  # Namespace definitions
+│   ├── argocd-install.yaml    # ArgoCD installation
+│   ├── argocd-application.yaml # ArgoCD Application manifest
+│   ├── run-argocd.ps1         # Script chạy ArgoCD
+│   └── cleanup.ps1            # Script cleanup
+├── helm/cms-app/              # Helm chart
+│   ├── Chart.yaml            # Helm chart metadata
+│   ├── values.yaml           # Default values
+│   └── templates/            # Kubernetes templates
+│       ├── deployment.yaml   # Django deployment
+│       ├── service.yaml      # Service definition
+│       ├── ingress.yaml      # Ingress configuration
+│       ├── postgres.yaml     # PostgreSQL deployment
+│       ├── secret.yaml       # Secrets
+│       └── serviceaccount.yaml
+└── README.md
 ```
 
-## Deploy với kubectl
+## Yêu cầu
 
-### 1. Tạo namespace
-```bash
-kubectl apply -f namespace.yaml
+- Kubernetes cluster
+- kubectl configured
+- Helm (optional, ArgoCD sẽ handle)
+
+## Cài đặt và Sử dụng
+
+### 1. Chạy ArgoCD và Deploy Application
+
+```powershell
+# Chạy script để cài đặt ArgoCD và deploy application
+cd k8s
+.\run-argocd.ps1
 ```
 
-### 2. Deploy PostgreSQL
-```bash
-kubectl apply -f postgres-deployment.yaml
+### 2. Cleanup (nếu cần)
+
+```powershell
+# Xóa tất cả resources
+cd k8s
+.\cleanup.ps1
 ```
 
-### 3. Deploy Django app
-```bash
-kubectl apply -f django-deployment.yaml
-```
+### 3. Truy cập Application
 
-### 4. Cấu hình Ingress
-```bash
-kubectl apply -f ingress.yaml
-```
-
-## Deploy với Helm
-
-### 1. Cài đặt Helm chart
-```bash
-helm install cms-app ./helm/cms-app --namespace cms-app --create-namespace
-```
-
-### 2. Upgrade deployment
-```bash
-helm upgrade cms-app ./helm/cms-app --namespace cms-app
-```
-
-### 3. Uninstall
-```bash
-helm uninstall cms-app --namespace cms-app
-```
+- ArgoCD UI: https://localhost:8080
+- Django CMS API: http://cms-api.local (cần cấu hình hosts file)
 
 ## Cấu hình
 
-### Environment Variables
+### ArgoCD Application
+
+Application được cấu hình để:
+- Sử dụng repository: `https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoA.git`
+- Deploy từ Helm chart trong `helm/cms-app`
+- Auto-sync enabled
+- Namespace: `cms-app`
+
+### Helm Chart
+
+Helm chart bao gồm:
+- Django application deployment
+- PostgreSQL database
+- Service và Ingress
+- Secrets và ConfigMaps
+- ServiceAccount
+
+### Image
+
+Application sử dụng image từ GitHub Container Registry:
+- Repository: `ghcr.io/quanmbl/project_cms_ci-cd_fpt_repoa`
+- Tag: `latest` (auto-updated bởi ArgoCD Image Updater)
+
+## Environment Variables
 
 - `SECRET_KEY`: Django secret key
-- `DEBUG`: Debug mode (True/False)
+- `DEBUG`: Debug mode (false in production)
 - `ALLOWED_HOSTS`: Allowed hosts
-- `CORS_ALLOW_ALL_ORIGINS`: CORS settings
-- `LANGUAGE_CODE`: Language code (vi)
-- `TIME_ZONE`: Time zone (Asia/Ho_Chi_Minh)
+- `DATABASE_URL`: PostgreSQL connection string
+- `CORS_ALLOW_ALL_ORIGINS`: CORS configuration
+- `LANGUAGE_CODE`: Language (vi)
+- `TIME_ZONE`: Timezone (Asia/Ho_Chi_Minh)
 
-### Database
+## Database
 
 - PostgreSQL 15
-- Persistent storage: 10Gi
-- User: cms_user
-- Database: cms_db
+- Persistent volume
+- Database: `cms_db`
+- User: `cms_user`
+- Password: `cms_password`
 
-### Resources
+## Monitoring
 
-- **Django App:**
-  - CPU: 250m (request) / 500m (limit)
-  - Memory: 256Mi (request) / 512Mi (limit)
-  - Replicas: 3
+Để kiểm tra trạng thái:
 
-- **PostgreSQL:**
-  - CPU: 250m (request) / 500m (limit)
-  - Memory: 256Mi (request) / 512Mi (limit)
-  - Replicas: 1
+```powershell
+# Kiểm tra ArgoCD applications
+kubectl get applications -n argocd
 
-## Health Checks
+# Kiểm tra pods
+kubectl get pods -n cms-app
 
-- **Liveness Probe:** `/api/health/` (30s initial delay, 10s period)
-- **Readiness Probe:** `/api/health/` (5s initial delay, 5s period)
+# Kiểm tra services
+kubectl get svc -n cms-app
 
-## Ingress
-
-- **Host:** cms-api.local
-- **Path:** /
-- **Annotations:**
-  - CORS enabled
-  - SSL redirect disabled
-  - Regex matching enabled
-
-## CI/CD
-
-Repository này được cấu hình với GitHub Actions để:
-- Deploy tự động khi push vào main branch
-- Sử dụng Helm để deploy
-- Verify deployment sau khi deploy
-- Health check để đảm bảo ứng dụng hoạt động
-
-## Secrets
-
-Cần tạo các secrets sau:
-
-```bash
-# Django secret key
-kubectl create secret generic django-secret \
-  --from-literal=SECRET_KEY=your-secret-key-here \
-  --namespace cms-app
-
-# Database credentials
-kubectl create secret generic django-secret \
-  --from-literal=DB_NAME=cms_db \
-  --from-literal=DB_USER=cms_user \
-  --from-literal=DB_PASSWORD=cms_password \
-  --from-literal=DB_HOST=cms-postgres \
-  --from-literal=DB_PORT=5432 \
-  --namespace cms-app
+# Kiểm tra logs
+kubectl logs -f deployment/cms-app -n cms-app
 ```
 
 ## Troubleshooting
 
-### Kiểm tra pods
-```bash
-kubectl get pods -n cms-app
-kubectl describe pod <pod-name> -n cms-app
-kubectl logs <pod-name> -n cms-app
+### ArgoCD không sync được
+```powershell
+# Kiểm tra ArgoCD logs
+kubectl logs -f deployment/argocd-server -n argocd
+
+# Force sync
+kubectl patch application cms-app -n argocd --type merge -p '{"operation":{"sync":{"syncStrategy":{"force":true}}}}'
 ```
 
-### Kiểm tra services
-```bash
-kubectl get services -n cms-app
-kubectl describe service <service-name> -n cms-app
+### Application không start được
+```powershell
+# Kiểm tra pod logs
+kubectl logs -f deployment/cms-app -n cms-app
+
+# Kiểm tra events
+kubectl get events -n cms-app
 ```
 
-### Kiểm tra ingress
-```bash
-kubectl get ingress -n cms-app
-kubectl describe ingress <ingress-name> -n cms-app
-```
+## Cleanup
 
-### Port forward để test local
-```bash
-kubectl port-forward service/django-cms-service 8000:8000 -n cms-app
+```powershell
+# Xóa application
+kubectl delete application cms-app -n argocd
+
+# Xóa namespace
+kubectl delete namespace cms-app
+
+# Xóa ArgoCD
+kubectl delete namespace argocd
 ```

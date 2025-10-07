@@ -8,10 +8,9 @@ keywords:
   - django
   - cms
   - api
-home: https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoB
+home: https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoA
 sources:
   - https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoA
-  - https://github.com/QuanMBL/Project_cms_ci-cd_FPT_repoB
 maintainers:
   - name: QuanMBL
     email: quan@example.com
